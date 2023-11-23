@@ -6,14 +6,16 @@ TagManager:
   tags:
   - Enemy
   - Score
+  - Projectile
+  - Spawner
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Obstacles
   - Water
   - UI
-  - 
+  - Human
   - 
   - 
   - 

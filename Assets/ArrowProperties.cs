@@ -4,8 +4,7 @@ using UnityEngine;
 
 public class ArrowProperties : MonoBehaviour
 {
-
-    public GameObject player;
+    GameObject player;
     private Rigidbody2D rb;
 
     public float force = 5f;
@@ -14,11 +13,12 @@ public class ArrowProperties : MonoBehaviour
 
     public int damage = 1;
 
-
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player");
-        rb = GetComponent<Rigidbody2D>();   
+        rb = GetComponent<Rigidbody2D>();
+
+        //damage += skeleton.damageIncrease;
 
         Vector3 direction = player.transform.position - transform.position;
 

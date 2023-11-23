@@ -47,4 +47,5 @@ MonoBehaviour:
   skeletonPrefab: {fileID: 1208685085365966727, guid: cc328bf5b6754ad42b06b084ff705fad, type: 3}
   minimumSpawnTime: 2
   maximumSpawnTime: 5
-  maxEnemyCount: 10
+  maxEnemyCount: 1
+  spawnRate: 5

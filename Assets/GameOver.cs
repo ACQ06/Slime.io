@@ -13,10 +13,11 @@ public class GameOver : MonoBehaviour
     //Game Score Text
     public TMP_Text scoreValue;
 
+    public string sceneName;
+
     //Display Game Over Screen
     public void Setup()
     {
-        
         gameObject.SetActive(true);
         gameOverScore.text = "Score: " + scoreValue.text;
     }
@@ -24,13 +25,13 @@ public class GameOver : MonoBehaviour
     //Play Again Button
     public void PlayAgain()
     {
-        SceneManager.LoadScene("Endless");
+        SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
     }
 
 
     //Main Menu Button
     public void MainMenu()
     {
-        SceneManager.LoadScene("Main Menu");
+        SceneManager.LoadScene("Main Menu", LoadSceneMode.Single);
     }
 }

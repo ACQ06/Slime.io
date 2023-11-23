@@ -4,12 +4,11 @@ using System.Text.RegularExpressions;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
-    public MovementJoystick movementJoystick;
-    
     private Rigidbody2D rb;
     public float collisionOffset = 0.05f;
     public ContactFilter2D contactFilter;
@@ -17,13 +16,14 @@ public class Player : MonoBehaviour
     Animator animator;
     SpriteRenderer spriteRenderer;
     public SwordAttack swordAttack;
+
     public TMP_Text healthText;
 
     public GameOver gameOver;
 
-    public Image healthbar;
+    public LevelOver levelOver;
 
-    bool canMove = true;
+    public Image healthbar;
 
     [SerializeField]
     private AudioSource slimeJump;
@@ -31,27 +31,54 @@ public class Player : MonoBehaviour
     [SerializeField]
     private AudioSource swordSlash;
 
+    public GameObject mobileControls;
 
-    public GameObject joystickButton;
-    public GameObject attackButton;
+    public string gameLevel;
 
+    public void SaveData()
+    {
+        SaveGame.SaveGameData(this, swordAttack);
+    }
+
+    public void LoadData()
+    {
+        GameData data = SaveGame.LoadGameData();
+
+        if (data == null)
+        {
+            return;
+        }
+
+        Regen = data.regen;
+        PlayerSpeed = data.playerSpeed;
+        increaseDamage(data.playerDamage - 1);
+        gameLevel = data.currentLevel;
+    }
 
     public bool Regen
     {
         set
         {
             regen = value;
+            Flash("Regen");
         }
 
         get { return regen; }
     }
 
+    float previousHealth;
     //Player Health Properties
     public float Health
     {
         set
         {
+            previousHealth = health;
             health = value;
+
+            if (previousHealth > health)
+            {
+                Flash("Damage");
+            }
         }
 
         get { return health; }
@@ -62,6 +89,7 @@ public class Player : MonoBehaviour
         set
         {
             playerSpeed = value;
+            Flash("Movement");
         }
 
         get
@@ -82,12 +110,23 @@ public class Player : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         health = maxHealth;
         healthText.text = health.ToString() + "/" + maxHealth.ToString();
+        originalMaterial = spriteRenderer.material;
+
+        LoadData();
     }
 
     //Healthbar UI GREEN/RED
     void UpdateHealthBar()
     {
         healthbar.fillAmount = health / maxHealth;
+    }
+
+    Vector2 joystick;
+
+
+    void OnMove(InputValue movementValue)
+    {
+        joystick = movementValue.Get<Vector2>();
     }
 
     void FixedUpdate()
@@ -109,48 +148,43 @@ public class Player : MonoBehaviour
             Defeated();
             return;
         }
-
-        //Check if Move is Unlocked
-        if (canMove )
+        //Check if Joystick is moving
+        if (joystick != Vector2.zero)
         {
-            //Check if Joystick is moving
-            if (movementJoystick.joystickVector != Vector2.zero)
+            //Check if player can move in the direction
+            bool success = TryMove(joystick);
+
+            //Slide player against location
+            if (!success && joystick.x > 0)
             {
-                //Check if player can move in the direction
-                bool success = TryMove(movementJoystick.joystickVector);
-
-                //Slide player against location
-                if (!success && movementJoystick.joystickVector.x > 0)
-                {
-                    success = TryMove(new Vector2(movementJoystick.joystickVector.x, 0));
-                }
-
-                if (!success && movementJoystick.joystickVector.y > 0)
-                {
-                    success = TryMove(new Vector2(0, movementJoystick.joystickVector.y));
-                }
-                //Play Walking Animation
-                animator.SetBool("isMoving", success);
+                success = TryMove(new Vector2(joystick.x, 0));
             }
 
-            else
+            if (!success && joystick.y > 0)
             {
-                //Stop Walking Animation
-                animator.SetBool("isMoving", false);
+                success = TryMove(new Vector2(0, joystick.y));
             }
+            //Play Walking Animation
+            animator.SetBool("isMoving", success);
+        }
+
+        else
+        {
+            //Stop Walking Animation
+            animator.SetBool("isMoving", false);
+        }
 
 
-            if (movementJoystick.joystickVector.x < 0)
-            {
-                spriteRenderer.flipX = true;
+        if (joystick.x < 0)
+        {
+            spriteRenderer.flipX = true;
 
-            }
+        }
 
-            else if (movementJoystick.joystickVector.x > 0)
-            {
-                spriteRenderer.flipX = false;
+        else if (joystick.x > 0)
+        {
+            spriteRenderer.flipX = false;
 
-            }
         }
     }
 
@@ -182,32 +216,30 @@ public class Player : MonoBehaviour
         }
     }
 
-
     //Play Player Attack Animation
-    public void attack(){
-        animator.SetTrigger("swordAttack");
+    public void OnAttack(){
+        animator.SetBool("isAttacking", true);
     }
 
-    public void increaseDamage(int damage)
+    public void increaseDamage(float damage)
     {
         swordAttack.damage += damage;
+        Flash("Damage Increase");
     }
 
     //Stop Player Attack Animation
     public void endAttack()
     {
-        //Stop and Unlock Player Movement 
         swordAttack.stopAttack();
-        UnlockMovement();
+        animator.SetBool("isAttacking", false);
     }
 
     //Attack Animation Properties
     public void SwordAttack()
     {
-        //Lock Movement Whenever Attacking
-        LockMovement();
-
         swordSlash.Play();
+
+        print("ATTACK");
 
         //Change Hitbox based off which side player is looking
         if (spriteRenderer.flipX == true)
@@ -231,11 +263,21 @@ public class Player : MonoBehaviour
     //Game Over
     void EndGame()
     {
-        joystickButton.SetActive(false);
-        attackButton.SetActive(false);
+        print("END GAME");
+        mobileControls.SetActive(false);
+
+
         Destroy(gameObject);
-        //Remove player from screen
-        gameOver.Setup();
+
+        if (gameOver != null)
+        {
+            gameOver.Setup();
+        }
+
+        else
+        {
+            levelOver.Setup();
+        }
     }
 
     void playWalkSFX()
@@ -243,21 +285,9 @@ public class Player : MonoBehaviour
         slimeJump.Play();
     }
 
-    //Lock Player Movement
-    void LockMovement()
-    {
-        canMove = false;
-    }
-
-    //Unlock Player Movement
-    void UnlockMovement()
-    {
-        canMove = true;
-    }
-
 
     bool regen = false;
-    public float cooldown = 1f; //Seconds
+    public float regenCooldown = 1f; //Seconds
     private float lastHealedAt = -9999f;
 
     //BUFFS
@@ -265,14 +295,75 @@ public class Player : MonoBehaviour
     {
         if (regen)
         {
-            if (Time.time > lastHealedAt + cooldown)
+            if (Time.time > lastHealedAt + regenCooldown)
             {
-                if(health < 50)
+                if(health < maxHealth)
                 {
                     health += 1f;
                     lastHealedAt = Time.time;
                 }
             }
         }
+    }
+
+    private Material originalMaterial;
+    [SerializeField] private Material damageFlash;
+    [SerializeField] private Material regenFlash;
+    [SerializeField] private Material movementFlash;
+    [SerializeField] private Material damageIncreaseFlash;
+
+
+    // The currently running coroutine.
+    private Coroutine flashRoutine;
+    [SerializeField] private float flashDuration = .01f;
+
+    private IEnumerator FlashRoutine(string FlashIndicator)
+    {
+
+        if (FlashIndicator == "Damage")
+        {
+            spriteRenderer.material = damageFlash;
+        }
+
+        else if (FlashIndicator == "Regen")
+        {
+            spriteRenderer.material = regenFlash;
+        }
+
+        else if (FlashIndicator == "Movement")
+        {
+            spriteRenderer.material = movementFlash;
+        }
+
+        else if (FlashIndicator == "Damage Increase")
+        {
+            spriteRenderer.material = damageIncreaseFlash;
+        }
+
+        // Swap to the flashMaterial.
+        
+
+        // Pause the execution of this function for "duration" seconds.
+        yield return new WaitForSeconds(flashDuration);
+
+        // After the pause, swap back to the original material.
+        spriteRenderer.material = originalMaterial;
+
+        // Set the routine to null, signaling that it's finished.
+        flashRoutine = null;
+    }
+
+    public void Flash(string FlashIndicator)
+    {
+        // If the flashRoutine is not null, then it is currently running.
+        if (flashRoutine != null)
+        {
+            // In this case, we should stop it first.
+            // Multiple FlashRoutines the same time would cause bugs.
+            StopCoroutine(flashRoutine);
+        }
+
+        // Start the Coroutine, and store the reference for it.
+        flashRoutine = StartCoroutine(FlashRoutine(FlashIndicator));
     }
 }

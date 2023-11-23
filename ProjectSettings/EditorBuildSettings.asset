@@ -11,4 +11,19 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Endless.unity
     guid: ba6c78bd65b7d8f419b21eb3116671a6
+  - enabled: 1
+    path: Assets/Scenes/Jungle.unity
+    guid: 4a69e6fd9a86d2740a1a23117525566c
+  - enabled: 1
+    path: Assets/Scenes/Dungeon Level 1.unity
+    guid: db460baa71c192e4a9443dabaf44f4ea
+  - enabled: 1
+    path: Assets/Scenes/Dungeon Level 2.unity
+    guid: 3c21e28ecb396494a850a91093bfa60b
+  - enabled: 1
+    path: Assets/Scenes/Underworld.unity
+    guid: 88e88d00be6762543868f747c4d23219
+  - enabled: 1
+    path: Assets/Scenes/Ending.unity
+    guid: 525f2c1135005704899bf6c9cbf6decf
   m_configObjects: {}

@@ -5,13 +5,37 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuScript : MonoBehaviour
 {
-    public void PlayGame()
+    GameData data;
+
+    private void Start()
     {
-        SceneManager.LoadSceneAsync("Endless");
+        data = SaveGame.LoadGameData();
+    }
+
+    public void Adventure()
+    {
+        if (data != null)
+        {
+            SceneManager.LoadSceneAsync(data.currentLevel, LoadSceneMode.Single);
+        }
+
+
+        else
+        {
+            SceneManager.LoadSceneAsync("Jungle", LoadSceneMode.Single);
+        }
+        
+    }
+
+    public void Endless()
+    {
+        SceneManager.LoadSceneAsync("Endless", LoadSceneMode.Single);
     }
 
     public void QuitGame()
     {
         Application.Quit();
     }
+
+    
 }
